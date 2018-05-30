@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <script type="text/javascript" src="d3.v3.min.js"></script>
+    <script type="text/javascript" src="topojson.v1.min.js"></script>
+    <script type="text/javascript" src="queue.v1.min.js"></script>
+    <script src="function.js"></script>
+    <title>Map</title>
+    <style>
+        .state:hover{
+            fill-opacity:0.5;
+        }
+        #tooltip {   
+            position: absolute;           
+            text-align: center;
+            padding: 20px;             
+            margin: 10px;
+            font: 12px sans-serif;        
+            background: lightsteelblue;   
+            border: 1px;      
+            border-radius: 2px;           
+            pointer-events: none;         
+        }
+        #tooltip h4{
+            margin:0;
+            font-size:14px;
+        }
+        #tooltip{
+            background:rgba(0,0,0,0.9);
+            border:1px solid grey;
+            border-radius:5px;
+            font-size:12px;
+            width:auto;
+            padding:4px;
+            color:white;
+            opacity:0;
+        }
+        #tooltip table{
+            table-layout:fixed;
+        }
+        #tooltip tr td{
+            padding:0;
+            margin:0;
+        }
+        #tooltip tr td:nth-child(1){
+            width:50px;
+        }
+        #tooltip tr td:nth-child(2){
+            text-align:center;
+        }
+    </style>
+</head>
+<body>
+    <h1 style="position: absolute;top:20px;left:200px;line-height: 20.5px;">各省空气质量总览</h1>
+<form name="flash" action="" method="" style="position:absolute;top:100px;left:60px;line-height:20.5px;">
+    <input type="button" value="刷新" onclick="reflash()"/>
+</form>
+<form name="quality" action="" method="" style="position:absolute;top:100px;left:160px;line-height:20.5px;">
+    <input type="radio" class="radioclass1" name="single1" value="aqi" checked="true">AQI
+    <input type="radio" class="radioclass1" name="single1" value="pm25">PM2.5
+    <input type="radio" class="radioclass1" name="single1" value="pm10">PM10
+    <input type="radio" class="radioclass1" name="single1" value="so2">SO<SUB>2</SUB>
+    <input type="radio" class="radioclass1" name="single1" value="no2">NO<SUB>2</SUB>
+    <input type="radio" class="radioclass1" name="single1" value="co">CO
+    <input type="radio" class="radioclass1" name="single1" value="ozone1hour">O<SUB>3</SUB>
+</form>
+
+<form name="single" action="" method="" style="position: absolute;top: 120px;left: 780px;">
+日期：
+<input id="day2" type="date" name="bday" min="2017-01-01" max="2017-12-31" value="2017-01-01"><input id="day" type="button" value="选中" onclick="changeday()">
+</form>
+
+<script>
+    var width = 700,
+        height = 500;
+
+    // 设置svg属性，并添加第一个孩子g
+    var svg = d3.select("body").append("svg").attr("id","map")
+        .attr("width", width)
+        .attr("height", height)
+        .attr("style", style = "position:absolute;top:120px;left:60px");
+    var groups = svg.append("g");
+    var projection = d3.geo.mercator()
+        .center([105, 38])
+        .scale(500)
+        .translate([width / 2, height / 2]);
+
+    // 定义地理路径生成器
+    var path = d3.geo.path()
+        .projection(projection);
+    reflash();
+    var date1= "2017-01-01"
+
+    function format(x){return x}
+    //console.log(format(date1));
+    var p = d3.select("body").selectAll("p");
+    p.data([format(date1)])
+        .text(function (d, i) {
+            return d;
+        });
+    var color1=d3.rgb(106,206,6);
+    var color2=d3.rgb(251,208,41);
+    var color3=d3.rgb(254,136,0);
+    var color4=d3.rgb(254,0,0);
+    var color5=d3.rgb(151,4,84);
+    var color6=d3.rgb(98,0,30);
+
+    var centerpoint=[197,31];
+    var mapsize=600;
+    var cityidp=11;
+    var citynamep=""
+    var mapstyle=0
+    var QUALITY="aqi";
+    
+    var conputeR = d3.scale.log()
+        .domain([300000, 9000000])
+        .range([0, 20]);
+    var color = d3.scale.category20();
+
+
+    d3.selectAll(".radioclass1")
+        .on("click", function () {
+            for (var i = 0; i < quality.single1.length; i++) {
+                if (quality.single1[i].checked == true) {
+                    QUALITY=quality.single1[i].value
+
+                }
+
+            }
+            if(mapstyle==0){
+            reflash()}
+            else{svg.selectAll("path").remove();
+            showMap(centerpoint,mapsize,cityidp,citynamep)}
+            addDefs(QUALITY)
+        });
+    function changeday(){date1= single.bday.value;
+        //console.log(format(date1));
+    p.data([format(date1)])
+                .text(function (d, i) {
+                    return d;
+                });
+            if(mapstyle==0){
+            reflash()}
+            else{svg.selectAll("path").remove();
+            showMap(centerpoint,mapsize,cityidp,citynamep)}}
+
+    addDefs(QUALITY);
+</script>
+<div id="tooltip"></div><!-- div to hold tooltip. -->
+<script>
+	function tooltipHtml(n,id,d){	/* function to create html content string in tooltip div. */
+		return "<h4>"+n+"</h4><table>"+
+            "<tr><td>"+id+"</td><td>"+(d)+"</td></tr>"+
+            "</table>"
+			
+    }
+</script>
+</body>
+</html>
