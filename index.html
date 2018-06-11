@@ -49,6 +49,14 @@
         #tooltip tr td:nth-child(2){
             text-align:center;
         }
+
+        .axis path,
+        .axis line,
+        .line {
+            stroke: #000;
+            fill: none;
+        }
+
     </style>
 </head>
 <body>
@@ -90,7 +98,7 @@
     var path = d3.geo.path()
         .projection(projection);
     reflash();
-    var date1= "2017-01-01"
+    var date1 = "2017-01-01";
 
     function format(x){return x}
     //console.log(format(date1));
@@ -109,8 +117,8 @@
     var centerpoint=[197,31];
     var mapsize=600;
     var cityidp=11;
-    var citynamep=""
-    var mapstyle=0
+    var citynamep = "";
+    var mapstyle = 0;
     var QUALITY="aqi";
     
     var conputeR = d3.scale.log()
@@ -146,6 +154,8 @@
             showMap(centerpoint,mapsize,cityidp,citynamep)}}
 
     addDefs(QUALITY);
+
+
 </script>
 <div id="tooltip"></div><!-- div to hold tooltip. -->
 <script>
