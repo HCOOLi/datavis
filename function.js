@@ -451,7 +451,6 @@ function draw(data, toolTip) {
                 }
             }
         }
-
         d3.select("#tooltip").html(toolTip(namelocal, QUALITY, datalocal))
             .style("left", (d3.event.pageX) + "px")
             .style("top", (d3.event.pageY - 28) + "px");
@@ -548,7 +547,9 @@ function addpie(province, city) {
                     return color[Math.floor(d.data.aqi)]
                 })
                 .on("click", function (d) {
-
+                    if (d.data.depth == 3) {
+                        return
+                    }
                     pie.selectAll(".arc").remove();
                     pie.selectAll(".smallpie").remove();
                     // console.log(d);
@@ -562,8 +563,7 @@ function addpie(province, city) {
                             drawpie(d.data.depth, d.data.month);
                             break;
                     }
-
-                })
+                });
             arcs.append("text")
                 .style("font-size", "12px")
                 .style("font-family", "simsun")
@@ -573,13 +573,9 @@ function addpie(province, city) {
                     //第一个元素（最中间的），只平移不旋转
                     if (i == 0)
                         return "translate(" + arc.centroid(d) + ")";
-
-                    //其他的元素，既平移也旋转
                     var r = 0;
-                    // if( (d.x+d.dx/2)/Math.PI*180 < 180 )  // 0 - 180 度以内的
                     r = 180 * ((d.x + d.dx / 2 - Math.PI / 2) / Math.PI);
-                    // else  // 180 - 360 度以内的
-                    //     r = 180 * ((d.x + d.dx / 2 + Math.PI / 2) / Math.PI);
+
 
                     //既平移也旋转
                     return "translate(" + arc.centroid(d) + ")" +
@@ -655,20 +651,6 @@ function addpie(province, city) {
 
         }
 
-        //画里面的饼
-
-
-        // g.selectAll("text")//给每个扇形去添加对应文字
-        //     .data(angle_data(dataset_m["吉林"][4]))
-        //     .enter()
-        //     .append("text")
-        //     .text(function (d, i) {
-        //         return d.value + "天"
-        //     })
-        //     .attr("transform", function (d) {
-        //         return "translate(" + arc_generator.centroid(d) + ")"
-        //     })//调成每个文字的对应位置
-        //     .attr("text-anchor", "middle")//是文字居中
     });
 }
 
@@ -815,7 +797,6 @@ function tree(data, city) {
 
     }
 
-    // var dataset={};
 
     console.log(datatree);
     return datatree
