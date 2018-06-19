@@ -112,6 +112,7 @@ function reflash() {
                 mapstyle = 1;
                 showMap(d.properties["cp"], d.properties["size"], d.properties["id"], d.properties["shortname"])
                 line_chart(undefined, d.properties["shortname"]);
+                addpie(undefined, d.properties["shortname"]);
 
 
             });
@@ -460,7 +461,6 @@ function draw(data, toolTip) {
         d3.select("#tooltip").transition().duration(500).style("opacity", 0);
     }
 
-
     d3.select("#map").selectAll("path")
         .on("mouseover", mouseOver).on("mouseout", mouseOut);
 }
@@ -470,22 +470,26 @@ function addpie(province, city) {
     var piesvg = d3.select("body")
         .append("svg")
         .attr("id", "pie")
-        .attr("width", 200)
-        .attr("height", 200)
+        .attr("width", 250)
+        .attr("height", 250)
         .attr("style", style = "position:absolute;top:430px;left:800px");
 
+    if (province == undefined) {
+        var file = "data/china.json"
+    } else {
+        var file = "data/" + province + ".json"
+    }
 
-    console.log(province);
-
-    d3.json("data/" + province + ".json", function (error, data) {
+    d3.json(file, function (error, data) {
         console.log(data);
         var dataset = count(data);
         console.log(dataset);
-        var dataset_m = dataset[0];
+        // var dataset_y = dataset[0];
+
         var datatree = tree(data, city);
 
         var pie = piesvg.append("g")
-            .attr("transform", "translate(100, 100)")
+            .attr("transform", "translate(125, 125)")
             .attr("class", "pie");
 
         var arc_generator = d3.svg.arc()
@@ -499,9 +503,10 @@ function addpie(province, city) {
             .value(function (d) {
                 return 1;
             });
-        drawpie(datatree);
+        drawpietree(datatree);
 
-        function drawpie(dataset) {
+        //画外面的饼
+        function drawpietree(dataset) {
             var nodes = partition.nodes(dataset);
             console.log(nodes);
             var arc = d3.svg.arc()
@@ -512,14 +517,17 @@ function addpie(province, city) {
                     return d.x + d.dx;
                 })
                 .innerRadius(function (d) {
-                    return Math.sqrt(d.y);
+                    return 25 + d.depth * 25;
                 })
                 .outerRadius(function (d) {
-                    return Math.sqrt(d.y + d.dy);
+                    // console.log("y",d.y,"dy",d.dy)
+                    return 50 + d.depth * 25;
                 });
             var arcs = pie.selectAll(".arc")
                 .data(nodes)
-                .enter().append("g").attr("class", "arc");
+                .enter()
+                .append("g")
+                .attr("class", "arc");
 
             arcs.append("path")
                 .attr("display", function (d) {
@@ -535,40 +543,120 @@ function addpie(province, city) {
                     color[3] = d3.rgb(254, 0, 0);
                     color[4] = d3.rgb(151, 4, 84);
                     color[5] = d3.rgb(98, 0, 30);
-                    console.log(Math.floor(d.data), i);
-                    return color[Math.floor(d.data)]
+                    // console.log(d);
+                    // console.log(Math.floor(d.data.aqi), i);
+                    return color[Math.floor(d.data.aqi)]
                 })
                 .on("click", function (d) {
 
                     pie.selectAll(".arc").remove();
-                    drawpie(d)
-                    // d3.select(this)
-                    //     .style("fill","yellow");
+                    pie.selectAll(".smallpie").remove();
+                    // console.log(d);
+                    drawpietree(d);
+
+                    switch (d.data.depth) {
+                        case 1:
+                            drawpie(d.data.depth, d.data.season);
+                            break;
+                        case 2:
+                            drawpie(d.data.depth, d.data.month);
+                            break;
+                    }
+
+                })
+            arcs.append("text")
+                .style("font-size", "12px")
+                .style("font-family", "simsun")
+                .attr("text-anchor", "middle")
+                .attr("transform", function (d, i) {
+                    // console.log(arc.centroid(d));
+                    //第一个元素（最中间的），只平移不旋转
+                    if (i == 0)
+                        return "translate(" + arc.centroid(d) + ")";
+
+                    //其他的元素，既平移也旋转
+                    var r = 0;
+                    // if( (d.x+d.dx/2)/Math.PI*180 < 180 )  // 0 - 180 度以内的
+                    r = 180 * ((d.x + d.dx / 2 - Math.PI / 2) / Math.PI);
+                    // else  // 180 - 360 度以内的
+                    //     r = 180 * ((d.x + d.dx / 2 + Math.PI / 2) / Math.PI);
+
+                    //既平移也旋转
+                    return "translate(" + arc.centroid(d) + ")" +
+                        "rotate(" + (r + 90) + ")";
+                })
+                .text(function (d, i) {
+                    if (i == 0) {
+                        return
+                    }
+                    switch (d.data.depth) {
+                        case 1:
+                            return "第" + (d.data.season + 1) + "季度";
+                        case 2:
+                            return (d.data.month + 1) + "月";
+                        case 3:
+                            if (d.depth == 1) {
+                                return d.data.day;
+                            }
+
+                    }
                 });
 
         }
 
+        drawpie(0);
 
-        var angle_data = d3.layout.pie();
+        function drawpie(depth, position) {
+            if (position == undefined) {
+                var data = dataset[depth][city]
+            }
+            else {
+                var data = dataset[depth][city][position]
+            }
+            console.log(data);
+            var angle_data = d3.layout.pie();
 
-        var date = new Date(date1.replace(/-/, "/"));
-        var month = date.getMonth();
-        pie.append("g")
-            .selectAll("path")
-            .data(angle_data(dataset_m[city]))
-            .enter()
-            .append("path")
-            .attr("d", arc_generator)
-            .style("fill", function (d, i) {
-                var color = new Array(6);
-                color[0] = d3.rgb(106, 206, 6);
-                color[1] = d3.rgb(251, 208, 41);
-                color[2] = d3.rgb(254, 136, 0);
-                color[3] = d3.rgb(254, 0, 0);
-                color[4] = d3.rgb(151, 4, 84);
-                color[5] = d3.rgb(98, 0, 30);
-                return color[i]
-            });//给不同的扇形区填充不同的颜色
+            var date = new Date(date1.replace(/-/, "/"));
+            var month = date.getMonth();
+            var pies = pie
+                .selectAll(".smallpie")
+                .data(angle_data(data))
+                .enter()
+                .append("g")
+                .attr("class", "smallpie");
+
+            pies.append("path")
+                .attr("d", arc_generator)
+                .style("fill", function (d, i) {
+                    var color = new Array(6);
+                    color[0] = d3.rgb(106, 206, 6);
+                    color[1] = d3.rgb(251, 208, 41);
+                    color[2] = d3.rgb(254, 136, 0);
+                    color[3] = d3.rgb(254, 0, 0);
+                    color[4] = d3.rgb(151, 4, 84);
+                    color[5] = d3.rgb(98, 0, 30);
+                    return color[i]
+                });
+
+            pies.append("text")
+                .style("font-size", "12px")
+                .style("font-family", "simsun")
+                .attr("text-anchor", "middle")
+                .attr("transform", function (d, i) {
+                    return "translate(" + arc_generator.centroid(d) + ")";
+
+                })
+                .text(function (d, i) {
+                    var pencent = d.value / d3.sum(data) * 100;
+                    console.log(d)
+                    if (pencent > 5)
+                        return d.value + "天";
+                });
+
+        }
+
+        //画里面的饼
+
 
         // g.selectAll("text")//给每个扇形去添加对应文字
         //     .data(angle_data(dataset_m["吉林"][4]))
@@ -688,8 +776,9 @@ function tree(data, city) {
     console.log(city);
     var datatree = {};
     datatree["children"] = [];
-    var season_d = {"children": [], data: 0};
-    var month_d = {"children": [], data: 0};
+    datatree["data"] = {aqi: 0, season: 0, month: 0, depth: 0};
+    var season_d = {"children": [], data: {aqi: 0, season: 0, month: 0, depth: 1}};
+    var month_d = {"children": [], data: {aqi: 0, season: 0, month: 0, depth: 2}};
     datatree["children"].push(season_d);
     season_d["children"].push(month_d);
     var m0 = 0;
@@ -697,20 +786,21 @@ function tree(data, city) {
     for (var datekey in data) {
         var date = new Date(datekey.replace(/-/, "/"));
         var month = date.getMonth();
+        var day_date = date.getDate()
         // console.log(month);
         var citykey = city;
         // for (var citykey in data[datekey]) {
         var aqi = data[datekey][citykey][QUALITY];
-        var day = {data: level(aqi)};
+        var day = {data: {aqi: level(aqi), day: day_date, depth: 3}};
         if (Math.floor(month / 3) > s0) {
             console.log(s0);
-            season_d = {"children": [], data: 0};
+            season_d = {"children": [], data: {aqi: 0, season: Math.floor(month / 3), month: month, depth: 1}};
             datatree["children"].push(season_d);
 
             s0 += 1
         }
         if (month > m0) {
-            month_d = {"children": [], data: 0};
+            month_d = {"children": [], data: {aqi: 0, season: Math.floor(month / 3), month: month, depth: 2}};
             season_d["children"].push(month_d);
 
             m0 += 1;
@@ -719,8 +809,8 @@ function tree(data, city) {
 
         }
         month_d["children"].push(day);
-        season_d.data += level(aqi) / 120.0;
-        month_d.data += level(aqi) / 30
+        season_d.data.aqi += level(aqi) / 120.0;
+        month_d.data.aqi += level(aqi) / 30
 
 
     }
@@ -775,7 +865,7 @@ function count(data) {
         for (var m = 0; m < 12; m++) {
             for (var l = 0; l < 6; l++) {
                 dataset_y[citykey][l] += dataset_m[citykey][m][l];
-                dataset_s[citykey][Math.floor(l / 3)][l] += dataset_m[citykey][m][l]
+                dataset_s[citykey][Math.floor(m / 3)][l] += dataset_m[citykey][m][l]
             }
 
         }
