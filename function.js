@@ -796,7 +796,7 @@ function line_chart(province, city) {
         .attr("id", "linechart")
         .attr("width", width)
         .attr("height", height)
-        .attr("style", style = "position:absolute;top:130px;left:700px");
+        .attr("style", style = "position:absolute;top:200px;left:700px");
 
     var linechart = linesvg.append('g')
         .attr('transform', "translate(" + padding.left + ',' + padding.top + ')')
