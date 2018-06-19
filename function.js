@@ -111,6 +111,7 @@ function reflash() {
                 citynamep = d.properties["shortname"];
                 mapstyle = 1;
                 showMap(d.properties["cp"], d.properties["size"], d.properties["id"], d.properties["shortname"])
+                line_chart(undefined, d.properties["shortname"]);
 
 
             });
@@ -236,7 +237,7 @@ function addDefs(kind) {
         .style("stop-color", color6);
 
     //添加一个矩形，并应用线性渐变
-    svg.selectAll("#myrect").remove()
+    svg.selectAll("#myrect").remove();
     var colorRect = svg.append("rect")
         .attr("id", "myrect")
         .attr("x", 20)
@@ -471,7 +472,7 @@ function addpie(province, city) {
         .attr("id", "pie")
         .attr("width", 200)
         .attr("height", 200)
-        .attr("style", style = "position:absolute;top:430px;left:700px");
+        .attr("style", style = "position:absolute;top:430px;left:800px");
 
 
     console.log(province);
@@ -591,11 +592,11 @@ function month_average(data) {
         console.log(month);
         for (var citykey in data[datekey]) {
             if (citykey in dataset) {
-                dataset[citykey][month] += data[datekey][citykey]["aqi"]
+                dataset[citykey][month] += data[datekey][citykey][QUALITY]
             }
             else {
                 dataset[citykey] = new Array(12).fill(0);
-                dataset[citykey][month] = data[datekey][citykey]["aqi"]
+                dataset[citykey][month] = data[datekey][citykey][QUALITY]
 
             }
         }
@@ -633,6 +634,7 @@ function month_average(data) {
 }
 
 function day_average(data) {
+    var quality = QUALITY
     var dataset = {};
     for (var datekey in data) {
         var date = new Date(datekey.replace(/-/, "/"));
@@ -641,14 +643,14 @@ function day_average(data) {
         console.log(month);
         for (var citykey in data[datekey]) {
             if (citykey in dataset) {
-                dataset[citykey][month][day - 1] = data[datekey][citykey]["aqi"]
+                dataset[citykey][month][day - 1] = data[datekey][citykey][quality]
             }
             else {
                 dataset[citykey] = new Array(12);
                 for (var m = 0; m < 12; m++) {
                     dataset[citykey][m] = []
                 }
-                dataset[citykey][month][0] = data[datekey][citykey]["aqi"]
+                dataset[citykey][month][0] = data[datekey][citykey][quality]
 
 
             }
@@ -698,7 +700,7 @@ function tree(data, city) {
         // console.log(month);
         var citykey = city;
         // for (var citykey in data[datekey]) {
-        var aqi = data[datekey][citykey]["aqi"];
+        var aqi = data[datekey][citykey][QUALITY];
         var day = {data: level(aqi)};
         if (Math.floor(month / 3) > s0) {
             console.log(s0);
@@ -740,7 +742,7 @@ function count(data) {
         var month = date.getMonth();
         // console.log(month);
         for (var citykey in data[datekey]) {
-            var aqi = data[datekey][citykey]["aqi"];
+            var aqi = data[datekey][citykey][QUALITY];
             if (citykey in dataset_m) {
 
                 dataset_m[citykey][month][level(aqi)] += 1;
@@ -783,6 +785,7 @@ function count(data) {
 
 
 function line_chart(province, city) {
+
     var width = 500, height = 300;
     // SVG画布边缘与图表内容的距离
     var padding = {top: 50, right: 50, bottom: 50, left: 100};
@@ -798,15 +801,28 @@ function line_chart(province, city) {
     var linechart = linesvg.append('g')
         .attr('transform', "translate(" + padding.left + ',' + padding.top + ')')
         .attr("class", "chart");
-    queue()
-        .defer(d3.json, "data/" + province + ".json")
-        .await(ready);
+    if (province == undefined) {
+        queue()
+            .defer(d3.json, "data/china.json")
+            .await(ready);
+    } else {
+        queue()
+            .defer(d3.json, "data/" + province + ".json")
+            .await(ready);
+    }
+
     var date = new Date(date1.replace(/-/, "/"));
     var month = date.getMonth();
 
     function ready(error, cityair) {
-        var dataset = day_average(cityair)[city][month];
-        var title = province + "省" + city + "市" + (month + 1) + "月" + "空气质量折线图";
+        if (province == undefined) {
+            var dataset = day_average(cityair)[city][month];
+            var title = city + "省" + (month + 1) + "月" + "空气质量折线图";
+        }
+        else {
+            var dataset = day_average(cityair)[city][month];
+            var title = province + "省" + city + "市" + (month + 1) + "月" + "空气质量折线图";
+        }
         var xtitle = "时间";
         var ytitle = "空气质量";
         console.log(dataset);
@@ -819,7 +835,7 @@ function line_chart(province, city) {
             .range([0, width - padding.left - padding.right]);
         // 创建y轴的比例尺(线性比例尺)
         var yScale = d3.scale.linear()
-            .domain([0, d3.max(dataset, function (d, i) {
+            .domain([0, 1.2 * d3.max(dataset, function (d, i) {
                 return d;
             })])
             .range([height - padding.top - padding.bottom, 0]);
@@ -872,14 +888,14 @@ function line_chart(province, city) {
         linechart.append("text")
             .text(title)
             .attr("class", "title")
-            .attr("x", width / 2 - 40)
+            .attr("x", width / 2 - padding.left)
             .attr("y", 0)
             .attr("text-anchor", "middle");
         linechart.append("text")
             .text(xtitle)
             .attr("class", "xtitle")
-            .attr("x", width / 2 - 40)
-            .attr("y", height - 60)
+            .attr("x", width / 2 - padding.left)
+            .attr("y", height - padding.bottom - 10)
             .attr("text-anchor", "middle");
         linechart.append("text")
             .text(ytitle)
